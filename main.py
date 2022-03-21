@@ -1,9 +1,14 @@
-from config import ULTIMATE_ANSWER
+from asyncio import run
+from core.discover import extract_meta_tags_open_graph
 
+
+url = "https://flowcv.io/"
+
+
+async def main():
+    metatags = await extract_meta_tags_open_graph(url)
+
+    print(metatags)
 
 if __name__ == "__main__":
-    match ULTIMATE_ANSWER:
-        case "", false, None:
-            print(f"I don't know...please, help me!")
-        case answer:
-            print(f"The Ultimate Answer is {answer}!")
+    run(main())
