@@ -18,11 +18,12 @@ RESTMethod = Literal["POST", "GET"]
 
 
 class RESTAdapter(AntevortaOutputAdapter):
-    def __init__(self, endpoint: str, method: RESTMethod = "POST", remmaping: Dict[str, str] = {}) -> None:
+    def __init__(self, endpoint: str, token: str | None = None, method: RESTMethod = "POST", remmaping: Dict[str, str] = {}) -> None:
         super().__init__()
         self.endpoint = endpoint
         self.method = method
         self.remmaping = remmaping
+        self.token = token
 
     async def save(self, discovery: AntevortaDiscovery) -> AntevortaDiscoveryStatus:
         payload = discovery.__dict__
@@ -33,18 +34,23 @@ class RESTAdapter(AntevortaOutputAdapter):
 
         async with ClientSession() as session:
             content, status = "", 0
+            payload = discovery.__dict__
 
             match self.method:
                 case "POST":
-                    async with session.post(self.endpoint) as res:
+                    async with session.post(self.endpoint, headers={
+                        "Authorization": f"Bearer {self.token}",
+                    }, json=payload) as res:
                         content = await res.text()
                         status = res.status
                 case "GET":
-                    async with session.get(self.endpoint) as res:
+                    async with session.get(self.endpoint, headers={
+                        "Authorization": f"Bearer {self.token}",
+                    }, json=payload) as res:
                         content = await res.text()
                         status = res.status
 
-            print(f"{self.endpoint} [{status}] {content}")
+            # print(f"{self.endpoint} [{status}] {content}")
 
             if status == 200:
                 return AntevortaDiscoveryStatus.DISCOVERED
