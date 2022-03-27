@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 from yake import KeywordExtractor
 
 from core.types import AntevortaDiscovery, Metatags
+from loguru import logger
 
 
 async def extract_meta_tags_open_graph(url: str) -> Metatags | None:
@@ -33,7 +34,7 @@ async def extract_meta_tags_open_graph(url: str) -> Metatags | None:
                 metatags["og_description"] = og_description["content"] if og_description else None
                 metatags["og_image"] = og_image["content"] if og_image else None
     except Exception as e:
-        print(e)
+        logger.error(e)
         return None
     return metatags
 
@@ -46,6 +47,7 @@ async def perform_discovery(url: str) -> AntevortaDiscovery | None:
     metatags = await extract_meta_tags_open_graph(url)
 
     if metatags is None:
+        logger.error(f"Could not extract meta tags from {url}")
         return None
 
     title = (metatags["og_title"] or metatags["title"] or "")

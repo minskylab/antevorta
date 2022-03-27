@@ -1,16 +1,15 @@
 from asyncio import gather
 from datetime import datetime
 from typing import List
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Header, Query
 from pydantic import BaseModel
 from api.semaphore import Semaphore
+from config.config import ADMIN_SECRET, CONCURRENT_TASKS
 from core.discover import perform_discovery
 from core.types import AntevortaDiscovery, AntevortaDiscoveryStatus
 from core.output_directus import directus_adapter
 
 app = FastAPI()
-
-CONCURRENT_TASKS = 10
 
 
 @Semaphore(CONCURRENT_TASKS)
@@ -25,11 +24,22 @@ class PerformDiscoveryResult(BaseModel):
 
 
 @app.get("/perform-discovery")
-async def perform_discovery_endpoint(urls: List[str] | None = Query(None)) -> PerformDiscoveryResult:
+async def perform_discovery_endpoint(
+    urls: List[str] | None = Query(None),
+    admin_token: str | None = Header(None),
+) -> PerformDiscoveryResult:
+    if ADMIN_SECRET != admin_token:
+        return PerformDiscoveryResult(
+            compute_time_ms=0,
+            error="Invalid admin token",
+            discoveries=None,
+        )
+
     now = datetime.now()
     match urls:
         case None:
             return PerformDiscoveryResult(
+                # TODO: Function to get compute time isn't working yet
                 compute_time_ms=(datetime.now() - now).microseconds / 1000,
                 error="No URLs provided",
             )
@@ -52,7 +62,17 @@ class PerformDiscoveryInput(BaseModel):
 
 
 @app.post("/perform-discovery")
-async def perform_discovery_post(input: PerformDiscoveryInput) -> PerformDiscoveryResult:
+async def perform_discovery_post(
+    input: PerformDiscoveryInput,
+    admin_token: str | None = Header(None),
+) -> PerformDiscoveryResult:
+    if ADMIN_SECRET != admin_token:
+        return PerformDiscoveryResult(
+            compute_time_ms=0,
+            error="Invalid admin token",
+            discoveries=None,
+        )
+
     results = await perform_discovery_endpoint(input.urls)
 
     match results:
