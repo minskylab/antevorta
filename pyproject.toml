@@ -10,6 +10,7 @@ python-decouple = "^3.6"
 aiohttp = "^3.8.1"
 beautifulsoup4 = "^4.10.0"
 yake = {git = "https://github.com/LIAAD/yake"}
+fastapi = {extras = ["all"], version = "^0.75.0"}
 
 [tool.poetry.dev-dependencies]
 autopep8 = "^1.6.0"

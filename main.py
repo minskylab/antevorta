@@ -2,18 +2,13 @@ from asyncio import run
 
 from core.discover import perform_discovery
 from core.output import RESTAdapter
+from uvicorn import run as run_server
+from api.api import app
 
 
-url = "https://flowcv.io/"
+def main():
+    run_server(app=app, host="0.0.0.0", port=8080)
 
-
-async def main():
-
-    discovery = await perform_discovery(url)
-    print(discovery)
-
-    adapter = RESTAdapter(endpoint="http")
-    await adapter.save(discovery)
 
 if __name__ == "__main__":
-    run(main())
+    main()
