@@ -26,9 +26,9 @@ class PerformDiscoveryResult(BaseModel):
 @app.get("/perform-discovery")
 async def perform_discovery_endpoint(
     urls: List[str] | None = Query(None),
-    admin_token: str | None = Header(None),
+    admin_secret: str | None = Header(None),
 ) -> PerformDiscoveryResult:
-    if ADMIN_SECRET != admin_token:
+    if ADMIN_SECRET != admin_secret:
         return PerformDiscoveryResult(
             compute_time_ms=0,
             error="Invalid admin token",
@@ -64,16 +64,16 @@ class PerformDiscoveryInput(BaseModel):
 @app.post("/perform-discovery")
 async def perform_discovery_post(
     input: PerformDiscoveryInput,
-    admin_token: str | None = Header(None),
+    admin_secret: str | None = Header(None),
 ) -> PerformDiscoveryResult:
-    if ADMIN_SECRET != admin_token:
+    if ADMIN_SECRET != admin_secret:
         return PerformDiscoveryResult(
             compute_time_ms=0,
             error="Invalid admin token",
             discoveries=None,
         )
 
-    results = await perform_discovery_endpoint(input.urls)
+    results = await perform_discovery_endpoint(input.urls, admin_secret)
 
     match results:
         case PerformDiscoveryResult(error=None, discoveries=None):
