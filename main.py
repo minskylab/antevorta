@@ -1,13 +1,10 @@
-from asyncio import run
-
-from core.discover import perform_discovery
-from core.output import RESTAdapter
 from uvicorn import run as run_server
 from api.api import app
+from config.config import HOST, PORT
 
 
 def main():
-    run_server(app=app, host="0.0.0.0", port=8080)
+    run_server(app=app, host=HOST, port=PORT)
 
 
 if __name__ == "__main__":
