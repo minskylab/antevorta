@@ -2,8 +2,9 @@ from aiohttp import ClientSession
 from typing import Dict
 from bs4 import BeautifulSoup
 
+from yake import KeywordExtractor
 
-Metatags = Dict[str, str | None]
+from core.types import AntevortaDiscovery, Metatags
 
 
 async def extract_meta_tags_open_graph(url: str) -> Metatags:
@@ -32,3 +33,35 @@ async def extract_meta_tags_open_graph(url: str) -> Metatags:
             metatags["og_image"] = og_image["content"] if og_image else None
 
     return metatags
+
+
+async def perform_discovery(url: str) -> AntevortaDiscovery:
+    keyphrases_extractor = KeywordExtractor(top=6, n=6, stopwords=None)
+    keywords_extractor = KeywordExtractor(top=6, n=1, stopwords=None)
+    keytrigrams_extractor = KeywordExtractor(top=6, n=3, stopwords=None)
+
+    metatags = await extract_meta_tags_open_graph(url)
+
+    full_text = (metatags["og_title"] or "") + " " + (metatags["og_description"] or "")
+
+    keytrigrams = keytrigrams_extractor.extract_keywords(full_text)
+
+    keyphrases = keyphrases_extractor.extract_keywords(full_text)
+    keyphrase = keyphrases[0][0] if len(keyphrases) > 0 else ""
+
+    keywords = keywords_extractor.extract_keywords(full_text)
+    keyword = keywords[0][0] if len(keywords) > 0 else ""
+
+    return AntevortaDiscovery(
+        url=url,
+        url_title=metatags["title"],
+        url_description=metatags["description"],
+        og_title=metatags["og_title"],
+        og_type=metatags["og_type"],
+        og_url=metatags["og_url"],
+        og_description=metatags["og_description"],
+        og_image=metatags["og_image"],
+        keytrigrams=keytrigrams,
+        keyphrase=keyphrase,
+        keyword=keyword,
+    )

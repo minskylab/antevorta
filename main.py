@@ -1,14 +1,19 @@
 from asyncio import run
-from core.discover import extract_meta_tags_open_graph
+
+from core.discover import perform_discovery
+from core.output import RESTAdapter
 
 
 url = "https://flowcv.io/"
 
 
 async def main():
-    metatags = await extract_meta_tags_open_graph(url)
 
-    print(metatags)
+    discovery = await perform_discovery(url)
+    print(discovery)
+
+    adapter = RESTAdapter(endpoint="http")
+    await adapter.save(discovery)
 
 if __name__ == "__main__":
     run(main())
