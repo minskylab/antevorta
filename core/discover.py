@@ -33,6 +33,7 @@ async def extract_meta_tags_open_graph(url: str) -> Metatags | None:
                 metatags["og_url"] = og_url["content"] if og_url else None
                 metatags["og_description"] = og_description["content"] if og_description else None
                 metatags["og_image"] = og_image["content"] if og_image else None
+
     except Exception as e:
         logger.error(e)
         return None

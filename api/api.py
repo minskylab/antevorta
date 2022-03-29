@@ -2,6 +2,7 @@ from asyncio import gather
 from datetime import datetime
 from typing import List
 from fastapi import FastAPI, Header, Query
+from loguru import logger
 from pydantic import BaseModel
 from api.semaphore import Semaphore
 from config.config import ADMIN_SECRET, CONCURRENT_TASKS
@@ -79,6 +80,7 @@ async def perform_discovery_post(
         case PerformDiscoveryResult(error=None, discoveries=None):
             return results
         case PerformDiscoveryResult(error=error, discoveries=None):
+            logger.error(f"Error performing discovery: {error}")
             return results
         case PerformDiscoveryResult(error=None, discoveries=[*discoveries]):
             await gather(*[save_discovery(discovery) for discovery in discoveries if discovery is not None])
