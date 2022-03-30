@@ -1,6 +1,6 @@
 from asyncio import gather
 from datetime import datetime
-from typing import List
+from typing import Dict, List
 from fastapi import FastAPI, Header, Query
 from loguru import logger
 from pydantic import BaseModel
@@ -101,3 +101,16 @@ async def perform_discovery_post(
             )
 
     return results
+
+
+@app.post("/aggregation-webhook")
+async def aggregation_webhook(
+    input: Dict,
+    admin_secret: str | None = Header(None),
+) -> None:
+    if ADMIN_SECRET != admin_secret:
+        return None
+
+    logger.info(f"Aggregation webhook received: {input}")
+
+    return None
