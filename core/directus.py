@@ -1,3 +1,4 @@
+from typing import List
 from pydantic import BaseModel
 from config.config import DIRECTUS_CREATE_RESOURCE_ENDPOINT, DIRECTUS_TOKEN
 from core.output import RESTAdapter
@@ -19,5 +20,6 @@ class DirectusWebhookEvent(BaseModel):
     event: str
     accountability: WebhookAccountability
     payload:  AntevortaDiscovery
-    key: str
+    key: str | None
+    keys: List[str] | None
     collection: str
