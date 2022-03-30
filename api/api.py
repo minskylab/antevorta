@@ -1,5 +1,5 @@
 from asyncio import gather
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List
 from fastapi import FastAPI, Header, Query
 from loguru import logger
@@ -8,13 +8,13 @@ from api.semaphore import Semaphore
 from config.config import ADMIN_SECRET, CONCURRENT_TASKS
 from core.discover import perform_discovery
 from core.types import AntevortaDiscovery
-from core.output_directus import directus_adapter
+from core.directus import DirectusWebhookEvent, directus_adapter
 
 app = FastAPI()
 
 
 @Semaphore(CONCURRENT_TASKS)
-async def discovery_task(url: str):
+async def discovery_task(url: str) -> AntevortaDiscovery | None:
     return await perform_discovery(url)
 
 
@@ -103,14 +103,34 @@ async def perform_discovery_post(
     return results
 
 
+# Next endpoint is very specific to the Directus API
 @app.post("/aggregation-webhook")
 async def aggregation_webhook(
-    input: Dict,
+    event: DirectusWebhookEvent,
     admin_secret: str | None = Header(None),
 ) -> None:
     if ADMIN_SECRET != admin_secret:
         return None
 
-    logger.info(f"Aggregation webhook received: {input}")
+    discovery: AntevortaDiscovery | None = None
+    revision: int | None = None
+
+    match event:
+        case DirectusWebhookEvent(event="items.create", key=id, payload=AntevortaDiscovery(url=url)):
+            discovery = await discovery_task(url)
+
+        case DirectusWebhookEvent(event="items.update", key=id, payload=AntevortaDiscovery(url=url, revision=rev, updated_at=updated_at)):
+            discovery = await discovery_task(url)
+            revision = rev
+            if updated_at is not None and datetime.now() - updated_at < timedelta(seconds=10):
+                return None
+
+    if discovery is None:
+        return None
+
+    discovery.id = id
+    discovery.revision = 1 if revision is None else revision + 1
+
+    await directus_adapter.update(discovery)
 
     return None

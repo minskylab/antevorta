@@ -12,6 +12,10 @@ class AntevortaOutputAdapter(ABC):
     async def save(self, discovery: AntevortaDiscovery) -> Dict | None:
         pass
 
+    @abstractmethod
+    async def update(self, discovery: AntevortaDiscovery) -> Dict | None:
+        pass
+
 
 RESTMethod = Literal["POST", "GET"]
 
@@ -26,13 +30,7 @@ class RESTAdapter(AntevortaOutputAdapter):
 
     async def save(self, discovery: AntevortaDiscovery) -> Dict | None:
         payload = discovery.dict()
-
-        # if len(self.remmaping) > 0:
-        #     for last_key, new_key in self.remmaping.items():
-        #         payload[new_key] = payload.pop(last_key)
-        # logger.info(payload)
-
-        # TODO: Implement better remapping of keys
+        # TODO: Implement better remapping of keys (check old commits)
 
         data: Any | None = None
 
@@ -50,3 +48,15 @@ class RESTAdapter(AntevortaOutputAdapter):
                         data = await res.json()
 
         return data
+
+    async def update(self, discovery: AntevortaDiscovery) -> Dict | None:
+        payload = discovery.dict()
+        # TODO: Implement better remapping of keys (check old commits)
+
+        async with ClientSession() as session:
+            async with session.patch(self.endpoint, headers={
+                "Authorization": f"Bearer {self.token}",
+            }, json=payload) as res:
+                data = await res.json()
+
+                return data

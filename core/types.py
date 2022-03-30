@@ -1,7 +1,7 @@
 
 
 from typing import Dict
-
+from datetime import datetime
 from pydantic import BaseModel
 
 
@@ -30,6 +30,10 @@ class AntevortaDiscovery(BaseModel):
     page_text: str | None
 
     raw: AntevortaDiscoveryRaw | None
+
+    revision: int | None
+    created_at: datetime | None
+    updated_at: datetime | None
 
 
 # class AntevortaDiscoveryStatus(Enum):
