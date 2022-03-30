@@ -1,16 +1,15 @@
 
 
 from abc import ABC, abstractmethod
-from email.policy import default
-from typing import Dict, Literal
+from typing import Any, Dict, Literal
 
 from aiohttp import ClientSession
-from core.types import AntevortaDiscovery, AntevortaDiscoveryStatus
+from core.types import AntevortaDiscovery
 
 
 class AntevortaOutputAdapter(ABC):
     @abstractmethod
-    async def save(self, discovery: AntevortaDiscovery) -> AntevortaDiscoveryStatus:
+    async def save(self, discovery: AntevortaDiscovery) -> Dict | None:
         pass
 
 
@@ -25,34 +24,29 @@ class RESTAdapter(AntevortaOutputAdapter):
         self.remmaping = remmaping
         self.token = token
 
-    async def save(self, discovery: AntevortaDiscovery) -> AntevortaDiscoveryStatus:
-        payload = discovery.__dict__
+    async def save(self, discovery: AntevortaDiscovery) -> Dict | None:
+        payload = discovery.dict()
 
-        if len(self.remmaping) > 0:
-            for last_key, new_key in self.remmaping.items():
-                payload[new_key] = payload.pop(last_key)
+        # if len(self.remmaping) > 0:
+        #     for last_key, new_key in self.remmaping.items():
+        #         payload[new_key] = payload.pop(last_key)
+        # logger.info(payload)
+
+        # TODO: Implement better remapping of keys
+
+        data: Any | None = None
 
         async with ClientSession() as session:
-            content, status = "", 0
-            payload = discovery.__dict__
-
             match self.method:
                 case "POST":
                     async with session.post(self.endpoint, headers={
                         "Authorization": f"Bearer {self.token}",
                     }, json=payload) as res:
-                        content = await res.text()
-                        status = res.status
+                        data = await res.json()
                 case "GET":
                     async with session.get(self.endpoint, headers={
                         "Authorization": f"Bearer {self.token}",
                     }, json=payload) as res:
-                        content = await res.text()
-                        status = res.status
+                        data = await res.json()
 
-            # print(f"{self.endpoint} [{status}] {content}")
-
-            if status == 200:
-                return AntevortaDiscoveryStatus.DISCOVERED
-
-        return AntevortaDiscoveryStatus.UNKNOWN
+        return data

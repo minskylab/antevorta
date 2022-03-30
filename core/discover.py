@@ -1,15 +1,20 @@
+from base64 import b64encode
 from aiohttp import ClientSession
-from typing import Dict
+from typing import Tuple
 from bs4 import BeautifulSoup
 
 from yake import KeywordExtractor
 
-from core.types import AntevortaDiscovery, Metatags
+from core.types import AntevortaDiscovery, AntevortaDiscoveryRaw, Metatags
 from loguru import logger
 
 
-async def extract_meta_tags_open_graph(url: str) -> Metatags | None:
+async def extract_meta_tags_open_graph(url: str) -> Tuple[str, str, Metatags | None]:
     metatags: Metatags = {}
+    content = ""
+    content_text = ""
+    # headers = {}
+
     try:
         async with ClientSession() as session:
             async with session.get(url) as res:
@@ -18,6 +23,7 @@ async def extract_meta_tags_open_graph(url: str) -> Metatags | None:
 
                 title = soup.find("title")
                 description = soup.find("meta", attrs={"name": "description"})
+                content_text = soup.get_text(separator=" ", strip=True)
 
                 og_title = soup.find("meta", property="og:title")
                 og_type = soup.find("meta", property="og:type")
@@ -36,8 +42,9 @@ async def extract_meta_tags_open_graph(url: str) -> Metatags | None:
 
     except Exception as e:
         logger.error(e)
-        return None
-    return metatags
+        return content, content_text, None
+
+    return content, content_text, metatags
 
 
 async def perform_discovery(url: str) -> AntevortaDiscovery | None:
@@ -45,7 +52,7 @@ async def perform_discovery(url: str) -> AntevortaDiscovery | None:
     keywords_extractor = KeywordExtractor(top=6, n=1, stopwords=None)
     keytrigrams_extractor = KeywordExtractor(top=6, n=3, stopwords=None)
 
-    metatags = await extract_meta_tags_open_graph(url)
+    content, content_text, metatags = await extract_meta_tags_open_graph(url)
 
     if metatags is None:
         logger.error(f"Could not extract meta tags from {url}")
@@ -76,4 +83,8 @@ async def perform_discovery(url: str) -> AntevortaDiscovery | None:
         keytrigrams=keytrigrams,
         keyphrase=keyphrase,
         keyword=keyword,
+        page_text=content_text,
+        raw=AntevortaDiscoveryRaw(
+            html=b64encode(content.encode(errors="ignore")),
+        )
     )

@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from api.semaphore import Semaphore
 from config.config import ADMIN_SECRET, CONCURRENT_TASKS
 from core.discover import perform_discovery
-from core.types import AntevortaDiscovery, AntevortaDiscoveryStatus
+from core.types import AntevortaDiscovery
 from core.output_directus import directus_adapter
 
 app = FastAPI()
@@ -54,8 +54,16 @@ async def perform_discovery_endpoint(
 
 
 @Semaphore(CONCURRENT_TASKS)
-async def save_discovery(discovery: AntevortaDiscovery) -> AntevortaDiscoveryStatus:
-    return await directus_adapter.save(discovery)
+async def save_discovery(discovery: AntevortaDiscovery) -> AntevortaDiscovery | None:
+    res = await directus_adapter.save(discovery)
+
+    if res is None:
+        return None
+
+    discovery = AntevortaDiscovery(**(res["data"]))
+    discovery.raw = None
+
+    return discovery
 
 
 class PerformDiscoveryInput(BaseModel):
@@ -74,6 +82,8 @@ async def perform_discovery_post(
             discoveries=None,
         )
 
+    now = datetime.now()
+
     results = await perform_discovery_endpoint(input.urls, admin_secret)
 
     match results:
@@ -83,7 +93,11 @@ async def perform_discovery_post(
             logger.error(f"Error performing discovery: {error}")
             return results
         case PerformDiscoveryResult(error=None, discoveries=[*discoveries]):
-            await gather(*[save_discovery(discovery) for discovery in discoveries if discovery is not None])
-            return results
+            discoveries = await gather(*[save_discovery(discovery) for discovery in discoveries if discovery is not None])
+            return PerformDiscoveryResult(
+                compute_time_ms=(datetime.now() - now).microseconds / 1000,
+                error=None,
+                discoveries=discoveries,
+            )
 
     return results
