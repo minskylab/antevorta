@@ -57,7 +57,9 @@ async def perform_discovery_endpoint(
 async def save_discovery(discovery: AntevortaDiscovery) -> AntevortaDiscovery | None:
     res = await directus_adapter.save(discovery)
 
-    if res is None:
+    if res is None or "data" not in res:
+        logger.warning(f"Failed to save discovery: {discovery.url}")
+        logger.warning(f"Directus response: {res}")
         return None
 
     discovery = AntevortaDiscovery(**(res["data"]))
