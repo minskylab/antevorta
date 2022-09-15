@@ -22,8 +22,6 @@ RUN poetry install --no-dev
 
 COPY . /app
 
-ENV PYTHONPATH=${PYTHONPATH}:${PWD} 
-
-
+# ENV PYTHONPATH=${PYTHONPATH}:${PWD} 
 
 CMD [ "poetry", "run", "python", "main.py" ]
